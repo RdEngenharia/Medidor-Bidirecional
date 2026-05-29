@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Energia RD ENGENHARIA </title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #12141c;
+            color: #ffffff;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding-bottom: 30px;
+        }
+
+        header {
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            padding: 15px 0;
+            margin-bottom: 5px;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            color: #00adb5;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Menu de Abas */
+        .nav-tabs {
+            display: flex;
+            width: 100%;
+            max-width: 450px;
+            background: #1b1f2f;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #9aa0a6;
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #00adb5;
+            color: #ffffff;
+        }
+
+        .tab-content {
+            width: 100%;
+            max-width: 450px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #9aa0a6;
+            margin-bottom: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #393e46;
+            border-radius: 50%;
+        }
+
+        .status-dot.active {
+            background-color: #39ff14;
+            box-shadow: 0 0 8px #39ff14;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        .card {
+            background: #1b1f2f;
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-left: 5px solid #393e46;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card.voltage { border-left-color: #00adb5; }
+        .card.consumption { border-left-color: #ff5722; }
+        .card.generation { border-left-color: #39ff14; }
+        .card.kwh { border-left-color: #e43f5a; }
+
+        .card-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #9aa0a6;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .card-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .card-value span {
+            font-size: 1.2rem;
+            font-weight: normal;
+            margin-left: 5px;
+            color: #9aa0a6;
+        }
+
+        .chart-card {
+            background: #1b1f2f;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: #ffffff;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Estilos da Central de Filtros (Aba Histórico) */
+        .filter-box {
+            background: #1b1f2f;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+
+        .filter-btn {
+            background: #232838;
+            border: 1px solid #393e46;
+            color: #ffffff;
+            padding: 8px 2px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: #00adb5;
+            border-color: #00adb5;
+        }
+
+        .date-inputs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .date-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.8rem;
+            color: #9aa0a6;
+        }
+
+        .date-field input {
+            background: #232838;
+            border: 1px solid #393e46;
+            color: #ffffff;
+            padding: 8px;
+            border-radius: 6px;
+            outline: none;
+            font-size: 0.85rem;
+        }
+
+        .search-btn {
+            background: #39ff14;
+            color: #12141c;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .search-btn:disabled {
+            background: #393e46;
+            color: #9aa0a6;
+        }
+
+        .kwh-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Monitor de Energia RD Engenharia</h1>
+    </header>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('realtime')">Tempo Real</button>
+        <button class="tab-btn" onclick="switchTab('history')">Histórico</button>
+    </div>
+
+    <div id="tab-realtime" class="tab-content active">
+        <div class="status-container">
+            <div id="statusDot" class="status-dot"></div>
+            <span id="statusText">Conectando ao servidor...</span>
+        </div>
+
+        <div class="card voltage">
+            <div class="card-label">Tensão da Rede</div>
+            <div class="card-value" id="voltage">---<span>V</span></div>
+        </div>
+
+        <div class="card consumption">
+            <div class="card-label">Consumo Atual (Casa)</div>
+            <div class="card-value" id="consumption">---<span>W</span></div>
+        </div>
+
+        <div class="card consumption">
+            <div class="card-label">Corrente (Casa)</div>
+            <div class="card-value" id="currentHouse">---<span>A</span></div>
+        </div>
+
+        <div class="card generation">
+            <div class="card-label">Geração Atual (Solar)</div>
+            <div class="card-value" id="generation">---<span>W</span></div>
+        </div>
+
+        <div class="card generation">
+            <div class="card-label">Corrente (Solar)</div>
+            <div class="card-value" id="currentSolar">---<span>A</span></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">Acompanhamento Instantâneo (Casa)</div>
+            <canvas id="consumptionChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">Acompanhamento Instantâneo (Solar)</div>
+            <canvas id="generationChart"></canvas>
+        </div>
+    </div>
+
+    <div id="tab-history" class="tab-content">
+        <div class="filter-box">
+            <div class="chart-title">Filtrar Relatório</div>
+            <div class="btn-group">
+                <button class="filter-btn" onclick="setQuickFilter('today')">Hoje</button>
+                <button class="filter-btn" onclick="setQuickFilter('yesterday')">Ontem</button>
+                <button class="filter-btn" onclick="setQuickFilter('week')">7 Dias</button>
+                <button class="filter-btn" onclick="setQuickFilter('month')">Mês</button>
+            </div>
+            <div class="date-inputs">
+                <div class="date-field">
+                    <label>Início</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="date-field">
+                    <label>Fim</label>
+                    <input type="date" id="endDate">
+                </div>
+            </div>
+            <button class="search-btn" id="btnLoadHistory" onclick="loadHistoryData()">Buscar Dados</button>
+        </div>
+
+        <div class="kwh-grid">
+            <div class="card consumption">
+                <div class="card-label">Consumido no Período</div>
+                <div class="card-value" id="histKwhHouse">---<span>kWh</span></div>
+            </div>
+            <div class="card generation">
+                <div class="card-label">Gerado no Período</div>
+                <div class="card-value" id="histKwhSolar">---<span>kWh</span></div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title" id="historyChartTitle">Gráfico do Histórico</div>
+            <canvas id="historyChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const channelID = '3376817';
+        const readKey = '5DDPG0LJHOYQT99F';
+        const urlFetch = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readKey}&results=15`;
+
+        let consumptionChart, generationChart, historyChart;
+        let activeController = null; // Evita bombardeio de requisições duplicadas
+
+        // Alternador de Abas do App
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if(tabName === 'realtime') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-realtime').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-history').classList.add('active');
+                if(!historyChart) { initHistoryChart(); setQuickFilter('today'); }
+            }
+        }
+
+        // Inicializa os Gráficos da Aba 1
+        function initCharts() {
+            const commonOptions = {
+                responsive: true,
+                scales: {
+                    x: { grid: { color: '#232838' }, ticks: { color: '#9aa0a6', display: false } },
+                    y: { grid: { color: '#232838' }, ticks: { color: '#9aa0a6' } }
+                },
+                plugins: { legend: { display: false } }
+            };
+
+            consumptionChart = new Chart(document.getElementById('consumptionChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ data: [], borderColor: '#ff5722', backgroundColor: 'rgba(255, 87, 34, 0.1)', fill: true, tension: 0.3 }] },
+                options: commonOptions
+            });
+
+            generationChart = new Chart(document.getElementById('generationChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ data: [], borderColor: '#39ff14', backgroundColor: 'rgba(57, 255, 20, 0.1)', fill: true, tension: 0.3 }] },
+                options: commonOptions
+            });
+        }
+
+        // Inicializa o Gráfico Grande da Aba 2 (Histórico)
+        function initHistoryChart() {
+            const ctxHist = document.getElementById('historyChart').getContext('2d');
+            historyChart = new Chart(ctxHist, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Consumo (W)', data: [], borderColor: '#ff5722', backgroundColor: 'transparent', tension: 0.2 },
+                        { label: 'Geração (W)', data: [], borderColor: '#39ff14', backgroundColor: 'transparent', tension: 0.2 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { grid: { color: '#232838' }, ticks: { color: '#9aa0a6', maxTicksLimit: 6 } },
+                        y: { grid: { color: '#232838' }, ticks: { color: '#9aa0a6' } }
+                    },
+                    plugins: { legend: { display: true, labels: { color: '#ffffff' } } }
+                }
+            });
+        }
+
+        // Atualiza a Aba de Tempo Real (Idêntico ao seu original, sem mexer no que já funcionava)
+        async function updateDashboard() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            try {
+                const response = await fetch(urlFetch);
+                if (!response.ok) throw new Error('Erro na rede');
+                const data = await response.json();
+
+                if (data.feeds && data.feeds.length > 0) {
+                    const latest = data.feeds[data.feeds.length - 1];
+                    
+                    document.getElementById('voltage').innerHTML = latest.field1 ? parseFloat(latest.field1).toFixed(1) + '<span>V</span>' : '---<span>V</span>';
+                    document.getElementById('consumption').innerHTML = latest.field2 ? parseFloat(latest.field2).toFixed(0) + '<span>W</span>' : '---<span>W</span>';
+                    document.getElementById('generation').innerHTML = latest.field3 ? parseFloat(latest.field3).toFixed(0) + '<span>W</span>' : '---<span>W</span>';
+                    document.getElementById('currentHouse').innerHTML = latest.field4 ? parseFloat(latest.field4).toFixed(2) + '<span>A</span>' : '---<span>A</span>';
+                    document.getElementById('currentSolar').innerHTML = latest.field5 ? parseFloat(latest.field5).toFixed(2) + '<span>A</span>' : '---<span>A</span>';
+
+                    const timestamps = data.feeds.map(f => new Date(f.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}));
+                    const consumptionData = data.feeds.map(f => f.field2 ? parseFloat(f.field2) : 0);
+                    const generationData = data.feeds.map(f => f.field3 ? parseFloat(f.field3) : 0);
+
+                    consumptionChart.data.labels = timestamps;
+                    consumptionChart.data.datasets[0].data = consumptionData;
+                    consumptionChart.update();
+
+                    generationChart.data.labels = timestamps;
+                    generationChart.data.datasets[0].data = generationData;
+                    generationChart.update();
+
+                    statusDot.classList.add('active');
+                    statusText.innerText = `Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`;
+                }
+            } catch (error) {
+                console.error(error);
+                statusDot.classList.remove('active');
+                statusText.innerText = 'Buscando dados ativos...';
+            }
+        }
+
+        // Configura datas nos botões rápidos da Aba Histórico
+        function setQuickFilter(type) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            const now = new Date();
+            let start = new Date();
+            let end = new Date();
+
+            if(type === 'today') {
+                // Hoje completo
+            } else if(type === 'yesterday') {
+                start.setDate(now.getDate() - 1);
+                end.setDate(now.getDate() - 1);
+            } else if(type === 'week') {
+                start.setDate(now.getDate() - 7);
+            } else if(type === 'month') {
+                start.setDate(1); // Dia 1 do mês atual
+            }
+
+            // Converte para o padrão do input date do HTML (AAAA-MM-DD)
+            document.getElementById('startDate').value = start.toISOString().split('T')[0];
+            document.getElementById('endDate').value = end.toISOString().split('T')[0];
+            
+            // Destaca o botão clicado
+            const idx = { 'today':0, 'yesterday':1, 'week':2, 'month':3 };
+            document.querySelectorAll('.filter-btn')[idx[type]].classList.add('active');
+            
+            loadHistoryData();
+        }
+
+        // BUSCA E TRATAMENTO DA MÁGICA DOS DADOS ANTIGOS (kWh)
+        async function loadHistoryData() {
+            const startVal = document.getElementById('startDate').value;
+            const endVal = document.getElementById('endDate').value;
+            const btn = document.getElementById('btnLoadHistory');
+
+            if(!startVal || !endVal) return;
+
+            btn.disabled = true;
+            btn.innerText = "Calculando...";
+
+            // Cancela requisições anteriores se houver alguma pendente para evitar travamento de servidor
+            if (activeController) activeController.abort();
+            activeController = new AbortController();
+
+            // Formata a URL com filtros de data para o ThingSpeak
+            const urlHistory = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readKey}&start=${startVal}%2000:00:00&end=${endVal}%2023:59:59`;
+
+            try {
+                const response = await fetch(urlHistory, { signal: activeController.signal });
+                if(!response.ok) throw new Error('Erro ao buscar histórico');
+                const data = await response.json();
+
+                if(data.feeds) {
+                    let totalWhHouse = 0;
+                    let totalWhSolar = 0;
+                    let labels = [];
+                    let cData = [];
+                    let gData = [];
+
+                    // Varre a linha do tempo calculando o acumulado de energia
+                    for(let i = 0; i < data.feeds.length; i++) {
+                        const currentFeed = data.feeds[i];
+                        const wHouse = currentFeed.field2 ? parseFloat(currentFeed.field2) : 0;
+                        const wSolar = currentFeed.field3 ? parseFloat(currentFeed.field3) : 0;
+
+                        cData.push(wHouse);
+                        gData.push(wSolar);
+                        
+                        // Formata exibição da data/hora nos gráficos
+                        const dateObj = new Date(currentFeed.created_at);
+                        labels.push(dateObj.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) + ' ' + dateObj.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}));
+
+                        // INTEGRAÇÃO MATEMÁTICA: Como o ESP envia a cada 20 segundos, cada ponto equivale a 20s de consumo estável.
+                        // Segundos para hora: 20s / 3600s = 0.00555 horas. Watts * Horas = Wh.
+                        totalWhHouse += wHouse * (20 / 3600);
+                        totalWhSolar += wSolar * (20 / 3600);
+                    }
+
+                    // Converte de Wh bruto para kWh comercial (Dividido por 1000)
+                    const kwhHouse = totalWhHouse / 1000;
+                    const kwhSolar = totalWhSolar / 1000;
+
+                    // Atualiza a tela com os kWh reais acumulados
+                    document.getElementById('histKwhHouse').innerHTML = `${kwhHouse.toFixed(2)}<span>kWh</span>`;
+                    document.getElementById('histKwhSolar').innerHTML = `${kwhSolar.toFixed(2)}<span>kWh</span>`;
+
+                    // Alimenta e renderiza o gráfico de histórico
+                    historyChart.data.labels = labels;
+                    historyChart.data.datasets[0].data = cData;
+                    historyChart.data.datasets[1].data = gData;
+                    historyChart.update();
+
+                    document.getElementById('historyChartTitle').innerText = `Histórico: ${data.feeds.length} registros computados`;
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error(err);
+                    alert('Erro ao processar dados. Tente um período menor ou aguarde um instante.');
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Buscar Dados";
+            }
+        }
+
+        // Execução Inicial automática ao abrir o arquivo
+        initCharts();
+        updateDashboard();
+        setInterval(updateDashboard, 15000); // Fica atualizando o tempo real a cada 15s
+    </script>
+</body>
+</html>
